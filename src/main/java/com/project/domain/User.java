@@ -47,4 +47,6 @@ public class User {
     public LocalDateTime getCreatedAt() { return createdAt; }
 
     public void setRole(Role role) { this.role = role; }
+    public void setName(String name) { this.name = name; }
+    public void setPassword(String password) { this.password = password; }
 }
