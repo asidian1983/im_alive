@@ -3,9 +3,11 @@ package com.project.controller;
 import com.project.dto.AuthResponse;
 import com.project.dto.LoginRequest;
 import com.project.dto.SignupRequest;
+import com.project.dto.TokenRefreshRequest;
 import com.project.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -26,5 +28,17 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody TokenRefreshRequest request) {
+        return ResponseEntity.ok(authService.refresh(request));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(Authentication authentication) {
+        Long userId = (Long) authentication.getPrincipal();
+        authService.logout(userId);
+        return ResponseEntity.noContent().build();
     }
 }

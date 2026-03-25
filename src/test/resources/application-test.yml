@@ -12,4 +12,22 @@ spring:
 
 jwt:
   secret: test-secret-key-must-be-at-least-256-bits-long-for-hmac-sha
-  expiration: 86400000
+  expiration: 3600000
+  refresh-expiration: 604800000
+
+cors:
+  allowed-origins: http://localhost:3000
+  allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
+  allowed-headers: "*"
+
+ai:
+  api-key: test-key
+  api-url: http://localhost:8080/mock-ai
+  model: test-model
+  max-tokens: 100
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

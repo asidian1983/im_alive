@@ -1,7 +1,8 @@
 package com.project.dto;
 
 public record AuthResponse(
-        String token,
+        String accessToken,
+        String refreshToken,
         String email,
         String name
 ) {}
