@@ -145,22 +145,21 @@ Next.js 기반 아키텍처에서 Spring Boot로 마이그레이션된 프로젝
 ### AI API (`/api/ai`)
 | Method | Endpoint | Auth | 설명 | Status |
 |--------|----------|------|------|--------|
-| POST | `/generate` | Yes | AI 텍스트 생성 (동기) | ✅ Done |
-| POST | `/generate-async` | Yes | AI 생성 (비동기) | MVP-3 |
-| GET | `/jobs/{jobId}` | Yes | 비동기 작업 상태 조회 | MVP-3 |
-| GET | `/history` | Yes | 내 생성 이력 조회 | MVP-3 |
-| GET | `/history/{id}` | Yes | 생성 이력 상세 | MVP-3 |
-| DELETE | `/history/{id}` | Yes | 생성 이력 삭제 | MVP-3 |
+| POST | `/generate` | Yes | AI 텍스트 생성 (동기) + 이력 저장 | ✅ Done |
+| POST | `/generate-async` | Yes | AI 생성 (비동기, 202 Accepted) | ✅ Done |
+| GET | `/jobs/{jobId}` | Yes | 비동기 작업 상태 폴링 | ✅ Done |
+| GET | `/history` | Yes | 내 생성 이력 조회 (페이징) | ✅ Done |
+| GET | `/history/{id}` | Yes | 생성 이력 상세 | ✅ Done |
+| DELETE | `/history/{id}` | Yes | 생성 이력 삭제 | ✅ Done |
 
-### Admin API (`/api/admin`) — MVP-3
-| Method | Endpoint | Auth | 설명 |
-|--------|----------|------|------|
-| GET | `/users` | ADMIN | 사용자 목록 (페이징) |
-| GET | `/users/{id}` | ADMIN | 사용자 상세 |
-| PATCH | `/users/{id}` | ADMIN | 사용자 역할/상태 변경 |
-| DELETE | `/users/{id}` | ADMIN | 사용자 삭제 |
-| GET | `/stats` | ADMIN | 시스템 통계 (사용자수, AI 호출수) |
-| GET | `/stats/ai-usage` | ADMIN | AI 사용량 통계 |
+### Admin API (`/api/admin`)
+| Method | Endpoint | Auth | 설명 | Status |
+|--------|----------|------|------|--------|
+| GET | `/users` | ADMIN | 사용자 목록 (페이징) | ✅ Done |
+| GET | `/users/{id}` | ADMIN | 사용자 상세 | ✅ Done |
+| PATCH | `/users/{id}` | ADMIN | 사용자 역할/이름 변경 | ✅ Done |
+| DELETE | `/users/{id}` | ADMIN | 사용자 삭제 | ✅ Done |
+| GET | `/stats` | ADMIN | 시스템 통계 | ✅ Done |
 
 ### System API
 | Method | Endpoint | Auth | 설명 | Status |
@@ -282,7 +281,7 @@ Next.js 기반 아키텍처에서 Spring Boot로 마이그레이션된 프로젝
                           │
                    ┌──────▼──────┐
                    │   Worker    │
-                   │  (MVP-3)    │
+                   │  ✅ 구현    │
                    │             │
                    │ 비동기 AI   │
                    │ 작업 처리   │
@@ -329,7 +328,7 @@ JWT 로그인/회원가입      Refresh Token
                        헬스체크
                        단위 테스트 11개
 
-MVP-3 (다음)            MVP-4 (확장)
+MVP-3 ✅ (완료)          MVP-4 (확장)
 ────────────────        ────────────────
 Redis 캐시/큐           Kafka 이벤트
 비동기 AI 생성          OAuth2 소셜 로그인
@@ -337,15 +336,16 @@ AI 생성 이력 저장       비밀번호 재설정
 관리자 API             알림 시스템
 Rate Limiting          프로필 이미지
 감사 로그              모니터링 (Grafana)
+테스트 21개
 ```
 
-### MVP-3 우선순위
+### MVP-4 우선순위
 
 | 순서 | 기능 | 이유 |
 |------|------|------|
-| 1 | AI 생성 이력 저장 | 핵심 비즈니스 데이터, 다른 기능의 기반 |
-| 2 | Redis 연동 | 캐시 + 큐 인프라, 비동기/Rate Limit 전제조건 |
-| 3 | 비동기 AI 생성 | 대용량 요청 처리, UX 개선 |
-| 4 | Rate Limiting | 남용 방지, AI API 비용 제어 |
-| 5 | 관리자 API | 운영 도구 |
-| 6 | 감사 로그 | 관리자 행동 추적 |
+| 1 | OAuth2 소셜 로그인 | 사용자 유입 확대, 가입 허들 제거 |
+| 2 | 비밀번호 재설정 | 필수 사용자 기능 |
+| 3 | Kafka 이벤트 스트리밍 | 서비스 간 결합도 감소, 확장성 |
+| 4 | 알림 시스템 | 비동기 작업 완료 알림, UX 개선 |
+| 5 | 모니터링 (Grafana) | 운영 가시성 |
+| 6 | 프로필 이미지 | 사용자 경험 개선 |
