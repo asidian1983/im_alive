@@ -1,11 +1,13 @@
 package com.project.infra;
 
+import com.project.common.exception.AiServiceException;
 import com.project.dto.AiResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -30,34 +32,45 @@ public class AiClient {
         this.maxTokens = maxTokens;
     }
 
+    public String getModel() {
+        return model;
+    }
+
     public AiResponse generate(String prompt) {
-        Map<String, Object> body = Map.of(
-                "model", model,
-                "max_tokens", maxTokens,
-                "messages", List.of(Map.of("role", "user", "content", prompt))
-        );
+        try {
+            Map<String, Object> body = Map.of(
+                    "model", model,
+                    "max_tokens", maxTokens,
+                    "messages", List.of(Map.of("role", "user", "content", prompt))
+            );
 
-        Map<?, ?> response = webClient.post()
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(body)
-                .retrieve()
-                .bodyToMono(Map.class)
-                .block();
+            Map<?, ?> response = webClient.post()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(body)
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(30))
+                    .block();
 
-        String content = extractContent(response);
-        int tokens = extractTokensUsed(response);
+            String content = extractContent(response);
+            int tokens = extractTokensUsed(response);
 
-        return new AiResponse(content, model, tokens);
+            return new AiResponse(content, model, tokens);
+        } catch (AiServiceException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new AiServiceException("AI service call failed", e);
+        }
     }
 
     @SuppressWarnings("unchecked")
     private String extractContent(Map<?, ?> response) {
         if (response == null || !response.containsKey("content")) {
-            throw new RuntimeException("Invalid AI response");
+            throw new AiServiceException("Invalid AI response");
         }
         List<Map<String, Object>> contentList = (List<Map<String, Object>>) response.get("content");
         if (contentList.isEmpty()) {
-            throw new RuntimeException("Empty AI response");
+            throw new AiServiceException("Empty AI response");
         }
         return (String) contentList.get(0).get("text");
     }
