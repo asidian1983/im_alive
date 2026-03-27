@@ -244,10 +244,72 @@ Exception                         → 500 (예상치 못한 에러, 로깅)
 | MVP-3 | ✅ Done | Redis 큐, 비동기 AI, Rate Limiting, 관리자 API, 감사 로그 |
 | MVP-4 | Planned | Kafka, OAuth2 소셜 로그인, 알림, 모니터링 |
 
-## Test Coverage (21 cases)
+## Test Coverage (54 cases)
 | Test Class | Cases | 대상 |
 |-----------|-------|------|
 | AuthServiceTest | 7 | 회원가입, 로그인, refresh, 에러 케이스 |
 | JwtProviderTest | 4 | 토큰 생성/파싱/검증/만료 |
 | AiJobServiceTest | 5 | 작업 생성, 처리, 실패, 미존재 |
 | ExceptionTest | 5 | 커스텀 예외 계층 검증 |
+| UserServiceTest | 9 | 사용자 CRUD, 부분 업데이트, 에러 |
+| AiServiceTest | 11 | AI 생성, 이력 조회, 소유권 검증 |
+| AdminServiceTest | 13 | 관리자 CRUD, 감사 로그, 통계 |
+
+---
+
+## Deployment Architecture
+
+### Infrastructure
+```
+                    ┌─────────────┐
+                    │   Ingress   │  (Traefik, TLS)
+                    │ k3s default │
+                    └──────┬──────┘
+                           │
+              ┌────────────┴────────────┐
+              │    im-alive namespace   │
+              │                         │
+              │  ┌─────────────────┐    │
+              │  │  App (replica 2)│    │
+              │  │  Spring Boot    │    │
+              │  │  :8080          │    │
+              │  └───┬────────┬────┘    │
+              │      │        │         │
+              │  ┌───┴───┐ ┌──┴──────┐  │
+              │  │ Redis │ │PostgreSQL│  │
+              │  │ :6379 │ │  :5432  │  │
+              │  └───────┘ └─────────┘  │
+              └─────────────────────────┘
+```
+
+### Docker
+| 파일 | 설명 |
+|------|------|
+| `Dockerfile` | Multi-stage 빌드 (JDK 17 빌드 → JRE 17 런타임), non-root user, healthcheck |
+| `.dockerignore` | 빌드 불필요 파일 제외 |
+| `docker-compose.yml` | App + PostgreSQL 16 + Redis 7, healthcheck 의존성, 볼륨 영속화 |
+
+### Kubernetes (k8s/)
+| 파일 | 설명 |
+|------|------|
+| `namespace.yaml` | `im-alive` 네임스페이스 |
+| `secrets.yaml` | DB/JWT/AI 시크릿 (gitignore 처리) |
+| `configmap.yaml` | 비민감 환경변수 |
+| `postgres.yaml` | Deployment + PVC(5Gi) + Service, liveness/readiness probe |
+| `redis.yaml` | Deployment + Service, AOF 영속화 |
+| `app.yaml` | Deployment(replica 2) + Service + Ingress(Traefik TLS), rolling update, startup/liveness/readiness probe |
+
+### CI/CD (GitHub Actions)
+| Workflow | Trigger | 단계 |
+|----------|---------|------|
+| `ci.yml` | PR → main | JDK 17 설정 → Gradle 캐시 → 빌드/테스트 → 리포트 업로드 |
+| `cd.yml` | Push → main | 빌드/테스트 → GHCR 이미지 푸시 → k3s 배포 → rollout 확인 |
+
+### Production Profile
+- `application-prod.yml`: `ddl-auto: validate`, 로그 레벨 조정, Prometheus 엔드포인트 노출
+
+### 배포 전 필수 설정
+1. GitHub Secrets: `KUBECONFIG` (base64 인코딩)
+2. `k8s/secrets.yaml` 실제 운영 값으로 변경 후 수동 apply
+3. `k8s/configmap.yaml`, `k8s/app.yaml` 도메인 변경
+4. 운영 환경변수: `SPRING_PROFILES_ACTIVE=prod`

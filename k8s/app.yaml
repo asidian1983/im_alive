@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: im-alive-app
+  namespace: im-alive
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: im-alive
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: im-alive
+    spec:
+      containers:
+        - name: im-alive
+          image: ghcr.io/asidian1983/im-alive:latest
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: im-alive-config
+          env:
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: im-alive-secrets
+                  key: DB_USERNAME
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: im-alive-secrets
+                  key: DB_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: im-alive-secrets
+                  key: JWT_SECRET
+            - name: AI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: im-alive-secrets
+                  key: AI_API_KEY
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: im-alive-svc
+  namespace: im-alive
+spec:
+  selector:
+    app: im-alive
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: im-alive-ingress
+  namespace: im-alive
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  rules:
+    - host: api.your-domain.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: im-alive-svc
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - api.your-domain.com
+      secretName: im-alive-tls
