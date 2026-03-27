@@ -26,3 +26,6 @@ Thumbs.db
 # Environment
 .env
 *.log
+
+# K8s secrets (contains credentials)
+k8s/secrets.yaml

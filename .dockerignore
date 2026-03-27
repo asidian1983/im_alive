@@ -1,0 +1,10 @@
+.git
+.gitignore
+.gradle
+build
+*.md
+docs
+.idea
+*.iml
+.omc
+CLAUDE.md
