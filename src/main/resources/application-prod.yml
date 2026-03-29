@@ -3,17 +3,81 @@ spring:
     hibernate:
       ddl-auto: validate
     show-sql: false
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+        generate_statistics: false
 
+  datasource:
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000          # 5min
+      max-lifetime: 1800000         # 30min
+      connection-timeout: 5000      # 5s
+      leak-detection-threshold: 30000  # 30s
+
+  data:
+    redis:
+      timeout: 3000
+      lettuce:
+        pool:
+          max-active: 16
+          max-idle: 8
+          min-idle: 4
+          max-wait: 3000
+
+# --- Actuator & Monitoring ---
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus
+        include: health,info,prometheus,metrics
+      base-path: /actuator
   endpoint:
     health:
       show-details: when-authorized
+      show-components: when-authorized
+      probes:
+        enabled: true
+    prometheus:
+      enabled: true
+  health:
+    db:
+      enabled: true
+    redis:
+      enabled: true
+    diskSpace:
+      enabled: true
+      threshold: 500MB
+  metrics:
+    tags:
+      application: im-alive
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      sla:
+        http.server.requests: 100ms,300ms,500ms,1s,3s
 
+# --- Server ---
+server:
+  shutdown: graceful
+  tomcat:
+    max-threads: 200
+    min-spare-threads: 20
+    accept-count: 100
+    connection-timeout: 5000
+    max-connections: 8192
+
+spring.lifecycle:
+  timeout-per-shutdown-phase: 30s
+
+# --- Logging ---
 logging:
   level:
     root: WARN
     com.project: INFO
+    org.springframework.security: WARN

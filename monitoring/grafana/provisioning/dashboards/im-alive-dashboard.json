@@ -1,0 +1,82 @@
+{
+  "annotations": { "list": [] },
+  "title": "im-alive Application",
+  "uid": "im-alive-main",
+  "timezone": "browser",
+  "refresh": "10s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "title": "Request Rate (req/s)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [{
+        "expr": "rate(http_server_requests_seconds_count{application=\"im-alive\"}[1m])",
+        "legendFormat": "{{method}} {{uri}} {{status}}"
+      }]
+    },
+    {
+      "title": "Response Time (p95)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [{
+        "expr": "histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{application=\"im-alive\"}[5m]))",
+        "legendFormat": "{{method}} {{uri}}"
+      }]
+    },
+    {
+      "title": "Error Rate (5xx)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 8 },
+      "targets": [{
+        "expr": "sum(rate(http_server_requests_seconds_count{application=\"im-alive\",status=~\"5..\"}[5m])) or vector(0)"
+      }]
+    },
+    {
+      "title": "Active DB Connections",
+      "type": "gauge",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 8 },
+      "targets": [{
+        "expr": "hikaricp_connections_active{application=\"im-alive\"}"
+      }]
+    },
+    {
+      "title": "JVM Heap Used",
+      "type": "timeseries",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 8 },
+      "targets": [{
+        "expr": "jvm_memory_used_bytes{application=\"im-alive\",area=\"heap\"} / 1024 / 1024",
+        "legendFormat": "{{id}} (MB)"
+      }]
+    },
+    {
+      "title": "AI Queue Size",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 8 },
+      "targets": [{
+        "expr": "health_redisQueue_details_queueSize{application=\"im-alive\"} or vector(0)"
+      }]
+    },
+    {
+      "title": "JVM GC Pause Time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "targets": [{
+        "expr": "rate(jvm_gc_pause_seconds_sum{application=\"im-alive\"}[5m])",
+        "legendFormat": "{{cause}} {{action}}"
+      }]
+    },
+    {
+      "title": "HikariCP Connection Pool",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "targets": [
+        { "expr": "hikaricp_connections_active{application=\"im-alive\"}", "legendFormat": "active" },
+        { "expr": "hikaricp_connections_idle{application=\"im-alive\"}", "legendFormat": "idle" },
+        { "expr": "hikaricp_connections_pending{application=\"im-alive\"}", "legendFormat": "pending" }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "version": 1
+}
