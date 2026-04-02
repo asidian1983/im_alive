@@ -6,6 +6,9 @@ CLAUDE.md
 # Gradle
 .gradle/
 build/
+gradle/
+gradlew
+gradlew.bat
 !gradle/wrapper/gradle-wrapper.jar
 
 # IDE
